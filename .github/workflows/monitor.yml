@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Run multiple checks within this run (every ~40s)
+      - name: Run single check (every 5 min via cron)
         env:
           TICKETCORNER_URL: ${{ secrets.TICKETCORNER_URL }}
           EVENT_LABEL: ${{ vars.EVENT_LABEL || 'David Guetta — Venoge Festival' }}
@@ -53,16 +53,7 @@ jobs:
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
           TWILIO_TO_NUMBER: ${{ secrets.TWILIO_TO_NUMBER }}
           TWILIO_TO_NUMBER_2: ${{ secrets.TWILIO_TO_NUMBER_2 }}
-        run: |
-          set -e
-          # 6 checks espacés de 40s => ~4 min total, on reste dans le timeout
-          for i in 1 2 3 4 5 6; do
-            echo "=== Check $i/6 ==="
-            node scripts/check.mjs || echo "Check échoué (non bloquant)"
-            if [ "$i" -lt 6 ]; then
-              sleep 40
-            fi
-          done
+        run: node scripts/check.mjs
 
       - name: Commit status & history
         run: |
