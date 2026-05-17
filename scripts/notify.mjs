@@ -20,6 +20,14 @@ const TW_FROM = process.env.TWILIO_FROM_NUMBER;
 const TW_TO = process.env.TWILIO_TO_NUMBER;
 const TW_TO_2 = process.env.TWILIO_TO_NUMBER_2;
 
+// Resend (email) — gratuit jusqu'à 100/jour
+const RESEND_KEY = process.env.RESEND_API_KEY;
+const EMAIL_FROM = process.env.EMAIL_FROM || "Claude Ticketcorner <onboarding@resend.dev>";
+const EMAIL_RECIPIENTS = (process.env.EMAIL_RECIPIENTS || "")
+  .split(",")
+  .map((e) => e.trim())
+  .filter(Boolean);
+
 function buildMessage({ label, url, prices, detectedAt, isFirstDetection, attempt }) {
   const priceLine =
     prices && prices.length
@@ -116,6 +124,59 @@ async function callTwilio(to, message, tag) {
   }
 }
 
+async function sendEmail(payload) {
+  if (!RESEND_KEY || EMAIL_RECIPIENTS.length === 0) {
+    return { skipped: "email (RESEND_API_KEY ou EMAIL_RECIPIENTS manquant)" };
+  }
+  try {
+    const { label, url, prices, detectedAt, isFirstDetection, attempt } = payload;
+    const priceLine = prices && prices.length
+      ? `<p style="font-size:18px;margin:8px 0"><strong>💰 Prix détectés :</strong> ${prices.map((p) => `CHF ${p}`).join(", ")}</p>`
+      : "";
+    const subject = isFirstDetection
+      ? `🚨 BILLETS DISPONIBLES — ${label}`
+      : `🔁 Rappel ${attempt} — billets toujours dispo : ${label}`;
+    const html = `
+<!doctype html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;background:#0a0a0f;color:#e9e9f1;padding:40px 20px;margin:0">
+  <div style="max-width:560px;margin:0 auto;background:linear-gradient(180deg,#14141d 0%,#1d1d2a 100%);border:2px solid #22c55e;border-radius:16px;padding:32px">
+    <div style="background:rgba(34,197,94,0.15);color:#22c55e;display:inline-block;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:0.06em;margin-bottom:16px">
+      ${isFirstDetection ? "🚨 PREMIÈRE DÉTECTION" : `🔁 RAPPEL #${attempt}`}
+    </div>
+    <h1 style="margin:0 0 8px;font-size:32px;color:#22c55e;line-height:1.1">BILLETS DISPONIBLES</h1>
+    <p style="font-size:18px;margin:8px 0;color:#e9e9f1"><strong>🎫 ${label}</strong></p>
+    ${priceLine}
+    <p style="font-size:14px;margin:8px 0;color:#8b8ba0">🕒 Détecté à : ${new Date(detectedAt).toLocaleString("fr-CH", { timeZone: "Europe/Zurich" })}</p>
+    <div style="margin:32px 0">
+      <a href="${url}" style="background:#22c55e;color:#0a1a0d;padding:16px 24px;border-radius:12px;font-weight:700;text-decoration:none;display:inline-block;font-size:16px">🛒 ALLER ACHETER MAINTENANT</a>
+    </div>
+    <p style="font-size:12px;color:#8b8ba0;margin-top:24px;border-top:1px solid #2a2a3a;padding-top:16px">— Claude (surveillance Ticketcorner)</p>
+  </div>
+</body></html>`;
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: EMAIL_RECIPIENTS,
+        subject,
+        html,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { error: `email: HTTP ${res.status} — ${JSON.stringify(data).slice(0, 200)}` };
+    }
+    return { ok: `email envoyé à ${EMAIL_RECIPIENTS.length} destinataire(s) (id ${data.id})` };
+  } catch (e) {
+    return { error: `email exception: ${e.message}` };
+  }
+}
+
 function escapeXml(s) {
   return s
     .replace(/&/g, "&amp;")
@@ -137,6 +198,7 @@ export async function sendAllAlerts(payload) {
     sendCallMeBot(CMB_PHONE_2, CMB_APIKEY_2, shortText, "callmebot#2"),
     callTwilio(TW_TO, voiceMessage, "twilio#1"),
     callTwilio(TW_TO_2, voiceMessage, "twilio#2"),
+    sendEmail(payload),
   ]);
 
   for (const r of results) {
