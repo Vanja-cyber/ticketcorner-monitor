@@ -1,0 +1,4 @@
+{
+  "monitoring": true,
+  "_comment": "Mets monitoring à false pour mettre en pause la surveillance sans supprimer le workflow."
+}

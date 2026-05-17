@@ -1,0 +1,85 @@
+name: Ticketcorner Monitor
+
+on:
+  # Toutes les 5 min (limite minimale pratique de GitHub Actions cron).
+  # En interne, chaque run fait plusieurs checks pour s'approcher d'un check toutes les 30s.
+  schedule:
+    - cron: "*/5 * * * *"
+  # Permet de déclencher à la main depuis l'onglet Actions de GitHub
+  workflow_dispatch:
+  # Re-déclenche quand on push une mise à jour de config
+  push:
+    branches: [main]
+    paths:
+      - "config.json"
+      - "scripts/**"
+      - ".github/workflows/monitor.yml"
+
+# Évite que 2 runs se marchent dessus
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # nécessaire pour committer status.json/history.json
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run multiple checks within this run (every ~40s)
+        env:
+          TICKETCORNER_URL: ${{ secrets.TICKETCORNER_URL }}
+          EVENT_LABEL: ${{ vars.EVENT_LABEL || 'David Guetta — Venoge Festival' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
+          CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+          CALLMEBOT_PHONE_2: ${{ secrets.CALLMEBOT_PHONE_2 }}
+          CALLMEBOT_APIKEY_2: ${{ secrets.CALLMEBOT_APIKEY_2 }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          TWILIO_TO_NUMBER: ${{ secrets.TWILIO_TO_NUMBER }}
+          TWILIO_TO_NUMBER_2: ${{ secrets.TWILIO_TO_NUMBER_2 }}
+        run: |
+          set -e
+          # 6 checks espacés de 40s => ~4 min total, on reste dans le timeout
+          for i in 1 2 3 4 5 6; do
+            echo "=== Check $i/6 ==="
+            node scripts/check.mjs || echo "Check échoué (non bloquant)"
+            if [ "$i" -lt 6 ]; then
+              sleep 40
+            fi
+          done
+
+      - name: Commit status & history
+        run: |
+          git config user.name "ticketcorner-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add docs/status.json docs/history.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "monitor: update status [skip ci]"
+            # Retry push en cas de conflit avec un run parallèle
+            for i in 1 2 3; do
+              if git pull --rebase origin main && git push; then
+                exit 0
+              fi
+              echo "Push retry $i..."
+              sleep 5
+            done
+            exit 1
+          else
+            echo "Aucun changement à committer."
+          fi

@@ -1,0 +1,15 @@
+{
+  "name": "ticketcorner-monitor",
+  "version": "1.0.0",
+  "description": "Surveillance automatique de Ticketcorner pour le Venoge Festival / David Guetta",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "notify-test": "node scripts/notify.mjs --test",
+    "dev-dashboard": "npx serve docs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {}
+}
