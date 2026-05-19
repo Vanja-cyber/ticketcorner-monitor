@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "t": "2026-05-19T18:10:23.974Z",
+      "available": false,
+      "confidence": "high",
+      "httpStatus": 200,
+      "error": null,
+      "prices": [
+        108.15,
+        153.6
+      ]
+    },
+    {
       "t": "2026-05-19T18:05:18.871Z",
       "available": false,
       "confidence": "high",
