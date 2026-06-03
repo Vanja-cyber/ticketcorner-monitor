@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "t": "2026-06-03T20:35:23.284Z",
+      "available": false,
+      "confidence": "error",
+      "httpStatus": 403,
+      "error": "HTTP 403",
+      "prices": []
+    },
+    {
       "t": "2026-06-03T20:30:39.369Z",
       "available": false,
       "confidence": "error",
@@ -4072,17 +4080,6 @@
       "httpStatus": 403,
       "error": "HTTP 403",
       "prices": []
-    },
-    {
-      "t": "2026-06-02T03:00:46.684Z",
-      "available": false,
-      "confidence": "high",
-      "httpStatus": 200,
-      "error": null,
-      "prices": [
-        108.15,
-        153.6
-      ]
     }
   ]
 }
