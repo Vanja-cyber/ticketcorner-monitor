@@ -85,8 +85,8 @@ async function fetchDirect(url) {
 }
 
 // Fallback via ScrapingBee (bypass Cloudflare). Coûte ~10 crédits/appel.
-// On limite l'usage : seulement si pas appelé depuis MIN_SCRAPINGBEE_INTERVAL ms.
-const MIN_SCRAPINGBEE_INTERVAL_MS = 55 * 60 * 1000; // 55 min (= ~1/h, tient dans 1000 crédits/mois)
+// 1000 crédits/mois = max ~100 appels = 1 toutes les ~8h pour tenir.
+const MIN_SCRAPINGBEE_INTERVAL_MS = 8 * 60 * 60 * 1000; // 8 heures
 
 async function fetchViaScrapingBee(url, prevStatus) {
   const key = process.env.SCRAPINGBEE_API_KEY;
