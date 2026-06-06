@@ -60,7 +60,7 @@ async function loadConfig() {
   return await readJson(CONFIG_PATH, { monitoring: true });
 }
 
-async function fetchPage(url) {
+async function fetchDirect(url) {
   // En-têtes réalistes pour limiter le blocage anti-bot
   const headers = {
     "User-Agent":
@@ -81,7 +81,52 @@ async function fetchPage(url) {
 
   const res = await fetch(url, { headers, redirect: "follow" });
   const html = await res.text();
-  return { status: res.status, html, finalUrl: res.url };
+  return { status: res.status, html, finalUrl: res.url, via: "direct" };
+}
+
+// Fallback via ScrapingBee (bypass Cloudflare). Coûte ~10 crédits/appel.
+// On limite l'usage : seulement si pas appelé depuis MIN_SCRAPINGBEE_INTERVAL ms.
+const MIN_SCRAPINGBEE_INTERVAL_MS = 55 * 60 * 1000; // 55 min (= ~1/h, tient dans 1000 crédits/mois)
+
+async function fetchViaScrapingBee(url, prevStatus) {
+  const key = process.env.SCRAPINGBEE_API_KEY;
+  if (!key) return null;
+
+  // Rate limit basé sur lastScrapingBeeCall enregistré dans status.json
+  const lastSB = prevStatus.lastScrapingBeeCall
+    ? new Date(prevStatus.lastScrapingBeeCall).getTime()
+    : 0;
+  const sinceMs = Date.now() - lastSB;
+  if (sinceMs < MIN_SCRAPINGBEE_INTERVAL_MS) {
+    const remainingMin = Math.ceil((MIN_SCRAPINGBEE_INTERVAL_MS - sinceMs) / 60000);
+    console.log(`⏭️  ScrapingBee skip (utilisé il y a ${Math.floor(sinceMs/60000)} min, attendre ${remainingMin} min)`);
+    return null;
+  }
+
+  console.log("→ Fallback ScrapingBee...");
+  const sbUrl =
+    "https://app.scrapingbee.com/api/v1/?api_key=" + encodeURIComponent(key) +
+    "&url=" + encodeURIComponent(url) +
+    "&render_js=true&premium_proxy=true&country_code=ch&wait=3000";
+
+  const res = await fetch(sbUrl);
+  const html = await res.text();
+  return { status: res.status, html, finalUrl: url, via: "scrapingbee", calledAt: new Date().toISOString() };
+}
+
+async function fetchPage(url, prevStatus) {
+  // Étape 1 : tentative directe (gratuit)
+  const direct = await fetchDirect(url);
+  if (direct.status < 400) return direct;
+
+  console.log(`Direct HTTP ${direct.status} → tentative ScrapingBee`);
+
+  // Étape 2 : fallback ScrapingBee (rate limited)
+  const sb = await fetchViaScrapingBee(url, prevStatus);
+  if (sb) return sb;
+
+  // Pas de fallback dispo : retourne l'erreur directe
+  return direct;
 }
 
 // Récupère tous les blocs JSON-LD du HTML
@@ -213,15 +258,40 @@ async function main() {
   let result;
   let httpStatus;
   let error = null;
+  let via = "direct";
+  let newScrapingBeeCallTime = prev.lastScrapingBeeCall || null;
 
   try {
-    const { status, html } = await fetchPage(URL);
-    httpStatus = status;
-    if (status >= 400) {
-      error = `HTTP ${status}`;
+    const fetched = await fetchPage(URL, prev);
+    httpStatus = fetched.status;
+    via = fetched.via;
+    if (fetched.calledAt) newScrapingBeeCallTime = fetched.calledAt;
+
+    if (fetched.status >= 400) {
+      // Direct a échoué et ScrapingBee a aussi échoué/skipped.
+      // Si SB est juste rate-limited (= on a une clé mais on a attendu) → on préserve l'ancien statut.
+      // Pas la peine d'afficher "ERREUR" sur le dashboard entre 2 appels SB.
+      const hasSBKey = !!process.env.SCRAPINGBEE_API_KEY;
+      if (fetched.via === "direct" && hasSBKey) {
+        console.log("ℹ️  Direct 403 + SB rate-limited → conservation du dernier statut connu");
+        await writeJson(STATUS_PATH, {
+          ...prev,
+          lastCheck: iso,
+          lastDirectError: `HTTP ${fetched.status}`,
+        });
+        await appendHistory({
+          t: iso, skipped: true, via: "skipped (rate-limited)",
+          available: prev.available, confidence: prev.confidence,
+          httpStatus: fetched.status, error: null, prices: prev.prices || [],
+        });
+        console.log("Aucune notification à envoyer (statut inchangé).");
+        return;
+      }
+      error = `HTTP ${fetched.status} (via ${fetched.via})`;
       result = { available: false, confidence: "error", source: "error", prices: [], availabilities: [], availCount: 0, unavailCount: 0, offersFound: 0 };
     } else {
-      result = analyse(html);
+      result = analyse(fetched.html);
+      result.source = `${result.source} (${fetched.via})`;
     }
   } catch (e) {
     error = e.message;
@@ -248,6 +318,8 @@ async function main() {
     lastAvailable: isAvailable ? iso : prev.lastAvailable,
     consecutiveAvailableChecks,
     source: result.source,
+    via,
+    lastScrapingBeeCall: newScrapingBeeCallTime,
     offersFound: result.offersFound || 0,
     availCount: result.availCount || 0,
     unavailCount: result.unavailCount || 0,
