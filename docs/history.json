@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "t": "2026-06-18T10:00:55.301Z",
+      "available": false,
+      "confidence": "low",
+      "httpStatus": 200,
+      "error": null,
+      "prices": []
+    },
+    {
       "t": "2026-06-18T09:55:25.610Z",
       "skipped": true,
       "via": "skipped (rate-limited)",
@@ -5359,14 +5367,6 @@
       "confidence": "error",
       "httpStatus": 403,
       "error": null,
-      "prices": []
-    },
-    {
-      "t": "2026-06-16T17:20:36.144Z",
-      "available": false,
-      "confidence": "error",
-      "httpStatus": 500,
-      "error": "HTTP 500 (via scrapingbee)",
       "prices": []
     }
   ]
