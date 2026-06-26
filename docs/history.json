@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "t": "2026-06-26T12:25:20.658Z",
+      "skipped": true,
+      "via": "skipped (rate-limited)",
+      "available": false,
+      "confidence": "error",
+      "httpStatus": 403,
+      "error": null,
+      "prices": []
+    },
+    {
       "t": "2026-06-26T12:20:24.601Z",
       "skipped": true,
       "via": "skipped (rate-limited)",
@@ -5724,16 +5734,6 @@
     },
     {
       "t": "2026-06-24T20:00:49.382Z",
-      "skipped": true,
-      "via": "skipped (rate-limited)",
-      "available": false,
-      "confidence": "error",
-      "httpStatus": 403,
-      "error": null,
-      "prices": []
-    },
-    {
-      "t": "2026-06-24T19:55:19.609Z",
       "skipped": true,
       "via": "skipped (rate-limited)",
       "available": false,
