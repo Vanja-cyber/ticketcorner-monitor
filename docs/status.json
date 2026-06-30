@@ -5,16 +5,15 @@
   "error": "HTTP 401 (via scrapingbee)",
   "label": "David Guetta — Venoge Festival",
   "url": "https://www.ticketcorner.ch/fr/event/venoge-festival-2026-venoge-festival-penthaz-21476256/",
-  "lastCheck": "2026-06-30T19:20:24.625Z",
+  "lastCheck": "2026-06-30T19:25:19.947Z",
   "lastAvailable": null,
   "consecutiveAvailableChecks": 0,
   "source": "error",
   "via": "scrapingbee",
-  "lastScrapingBeeCall": "2026-06-30T11:20:25.791Z",
+  "lastScrapingBeeCall": "2026-06-30T19:25:21.198Z",
   "offersFound": 0,
   "availCount": 0,
   "unavailCount": 0,
   "availabilities": [],
-  "prices": [],
-  "lastDirectError": "HTTP 403"
+  "prices": []
 }
