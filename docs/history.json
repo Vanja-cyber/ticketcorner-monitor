@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "t": "2026-07-11T08:15:23.902Z",
+      "skipped": true,
+      "via": "skipped (rate-limited)",
+      "available": true,
+      "confidence": "high",
+      "httpStatus": 403,
+      "error": null,
+      "prices": [
+        108.15,
+        153.6
+      ]
+    },
+    {
       "t": "2026-07-11T08:10:47.249Z",
       "skipped": true,
       "via": "skipped (rate-limited)",
@@ -5440,14 +5453,6 @@
       "confidence": "error",
       "httpStatus": 403,
       "error": null,
-      "prices": []
-    },
-    {
-      "t": "2026-07-09T16:10:43.251Z",
-      "available": false,
-      "confidence": "error",
-      "httpStatus": 401,
-      "error": "HTTP 401 (via scrapingbee)",
       "prices": []
     }
   ]
