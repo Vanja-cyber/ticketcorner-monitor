@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "t": "2026-07-17T02:45:25.122Z",
+      "available": false,
+      "confidence": "low",
+      "httpStatus": 200,
+      "error": null,
+      "prices": []
+    },
+    {
       "t": "2026-07-17T02:40:23.843Z",
       "available": false,
       "confidence": "low",
@@ -4901,14 +4909,6 @@
       "confidence": "error",
       "httpStatus": 403,
       "error": null,
-      "prices": []
-    },
-    {
-      "t": "2026-07-15T10:55:18.299Z",
-      "available": false,
-      "confidence": "error",
-      "httpStatus": 401,
-      "error": "HTTP 401 (via scrapingbee)",
       "prices": []
     }
   ]
